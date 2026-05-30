@@ -1,0 +1,10 @@
+[package]
+name = "transaction_comparer"
+edition = "2024"
+version = "0.0.1"
+authors = ["Gleb Akisin <ekod87@yandex.ru>"]
+
+[dependencies]
+transaction_parser = {
+    path = "../transaction_parser"
+}

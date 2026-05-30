@@ -1,0 +1,4 @@
+[workspace]
+members = ["transaction_parser", "transaction_converter", "transaction_comparer"]
+resolver = "3"
+

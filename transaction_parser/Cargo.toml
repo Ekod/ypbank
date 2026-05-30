@@ -1,0 +1,5 @@
+[package]
+name = "transaction_parser"
+edition = "2024"
+version = "0.0.1"
+authors = ["Gleb Akisin <ekod87@yandex.ru>"]
