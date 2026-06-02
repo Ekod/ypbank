@@ -2,13 +2,14 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::string::FromUtf8Error;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParserError {
-    IO(io::Error),
+    IO(String),
     InvalidArgument(String),
     InvalidHeader(String),
     InvalidRecord(String),
     InvalidValue(String),
+    InvalidRange(String),
 }
 
 impl Display for ParserError {
@@ -25,13 +26,16 @@ impl Display for ParserError {
             Self::InvalidValue(err) => {
                 write!(f, "некорректное значение {err}")
             }
+            Self::InvalidRange(err) => {
+                write!(f, "некорректный диапазон {err}")
+            }
         }
     }
 }
 
 impl From<io::Error> for ParserError {
     fn from(err: io::Error) -> Self {
-        Self::IO(err)
+        Self::IO(err.to_string())
     }
 }
 

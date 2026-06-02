@@ -30,7 +30,7 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
         let transaction_fields = line.split(": ").collect::<Vec<&str>>();
         if transaction_fields.len() != 2 {
             return Err(ParserError::InvalidRecord(
-                "transaction data length is incorrect".to_string(),
+                "неверная длина транзакции".to_string(),
             ));
         }
 
@@ -68,4 +68,13 @@ pub fn write<W: Write>(writer: &mut W, transactions: &Vec<Transaction>) -> Resul
 
     writer.flush()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_read_success() {}
+
+    #[test]
+    fn test_write_success() {}
 }

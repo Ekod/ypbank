@@ -1,10 +1,10 @@
 [alias]
-convert_txt_to_csv = "run --bin ypbank_converter -- --input records_example.txt --input-format txt --output-format csv"
-convert_txt_to_binary = "run --bin ypbank_converter -- --input records_example.txt --input-format txt --output-format bin"
-convert_csv_to_txt = "run --bin ypbank_converter -- --input records_example.csv --input-format csv --output-format txt"
-convert_csv_to_binary = "run --bin ypbank_converter -- --input records_example.csv --input-format csv --output-format bin"
-convert_binary_to_csv = "run --bin ypbank_converter -- --input records_example.bin --input-format bin --output-format csv"
-convert_binary_to_txt = "run --bin ypbank_converter -- --input records_example.bin --input-format bin --output-format txt"
+convert_txt_to_csv = "run --bin transaction_converter -- --input records_example.txt --input-format txt --output-format csv"
+convert_txt_to_binary = "run --bin transaction_converter -- --input records_example.txt --input-format txt --output-format bin"
+convert_csv_to_txt = "run --bin transaction_converter -- --input records_example.csv --input-format csv --output-format txt"
+convert_csv_to_binary = "run --bin transaction_converter -- --input records_example.csv --input-format csv --output-format bin"
+convert_binary_to_csv = "run --bin transaction_converter -- --input records_example.bin --input-format bin --output-format csv"
+convert_binary_to_txt = "run --bin transaction_converter -- --input records_example.bin --input-format bin --output-format txt"
 #-------------------------------------------------------------------------------------------------------------------------
 compare_csv_to_csv = "run --bin transaction_comparer -- --file1 records_example.csv --input-format1 csv --file2 records_example.csv --input-format2 csv"
 compare_csv_to_txt = "run --bin transaction_comparer -- --file1 records_example.csv --input-format1 csv --file2 records_example.txt --input-format2 txt"

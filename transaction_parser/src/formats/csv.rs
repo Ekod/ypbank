@@ -20,7 +20,7 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
                 let header = header_line.trim().to_string();
                 if header != CSV_HEADER {
                     return Err(ParserError::InvalidHeader(
-                        "csv header is invalid".to_string(),
+                        "csv заголовок не валидный".to_string(),
                     ));
                 }
             }
@@ -29,14 +29,16 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
             }
         },
         None => {
-            return Err(ParserError::InvalidHeader("header not found".to_string()));
+            return Err(ParserError::InvalidHeader(
+                "заголовок не найден".to_string(),
+            ));
         }
     }
 
     let _ = lines.remove(0);
 
     for line in lines {
-        let line = line.expect("Failed to read line");
+        let line = line.expect("не удалось прочитать строку");
         if line.is_empty() {
             continue;
         }
@@ -44,7 +46,7 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
         let transaction_fields = line.split(",").collect::<Vec<&str>>();
         if transaction_fields.len() != 8 {
             return Err(ParserError::InvalidRecord(
-                "transaction data length is incorrect".to_string(),
+                "неверная длина транзакции".to_string(),
             ));
         }
 
@@ -94,4 +96,151 @@ pub fn write<W: Write>(writer: &mut W, transactions: &Vec<Transaction>) -> Resul
 
     writer.flush()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{TransactionStatus, TransactionType};
+    use rand::RngExt;
+    use std::fs::{File, remove_file};
+    use std::path::Path;
+    #[test]
+    fn test_read_success() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.csv");
+        let mut file = File::create(&test_file_name).unwrap();
+        let transaction = Transaction {
+            tx_id: 10,
+            tx_type: TransactionType::Deposit,
+            from_user_id: 1,
+            to_user_id: 2,
+            amount: 100,
+            timestamp: 500,
+            status: TransactionStatus::Success,
+            description: "description".to_string(),
+        };
+        writeln!(file, "{}", CSV_HEADER).unwrap();
+        writeln!(
+            file,
+            "{},{},{},{},{},{},{},{}",
+            transaction.tx_id,
+            transaction.tx_type,
+            transaction.from_user_id,
+            transaction.to_user_id,
+            transaction.amount,
+            transaction.timestamp,
+            transaction.status,
+            transaction.description,
+        )
+        .unwrap();
+        file.flush().unwrap();
+
+        let mut reader = File::open(Path::new(&test_file_name)).unwrap();
+
+        let result = match read(&mut reader) {
+            Ok(result) => result,
+            Err(error) => panic!("возникла проблема при чтении файла {:?}", error),
+        };
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0], transaction);
+        remove_file(Path::new(&test_file_name)).unwrap();
+    }
+
+    #[test]
+    fn test_read_failure_header_not_found() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.csv");
+        let _ = File::create(&test_file_name).unwrap();
+
+        let mut reader = File::open(Path::new(&test_file_name)).unwrap();
+        if let Err(err) = read(&mut reader) {
+            assert_eq!(
+                err,
+                ParserError::InvalidHeader("заголовок не найден".to_string())
+            );
+        };
+
+        remove_file(Path::new(&test_file_name)).unwrap();
+    }
+
+    #[test]
+    fn test_read_failure_header_is_not_valid() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.csv");
+        let mut file = File::create(&test_file_name).unwrap();
+
+        writeln!(file, "Some header").unwrap();
+
+        let mut reader = File::open(Path::new(&test_file_name)).unwrap();
+        if let Err(err) = read(&mut reader) {
+            assert_eq!(
+                err,
+                ParserError::InvalidHeader("csv заголовок не валидный".to_string(),)
+            );
+        };
+
+        remove_file(Path::new(&test_file_name)).unwrap();
+    }
+
+    #[test]
+    fn test_read_failure_wrong_transaction_length(){
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.csv");
+        let mut file = File::create(&test_file_name).unwrap();
+
+        writeln!(file, "{}", CSV_HEADER).unwrap();
+        file.flush().unwrap();
+
+        let mut reader = File::open(Path::new(&test_file_name)).unwrap();
+
+        if let Err(err) = read(&mut reader) {
+            assert_eq!(
+                err,
+                ParserError::InvalidRecord(
+                    "неверная длина транзакции".to_string(),
+                )
+            );
+        };
+
+        remove_file(Path::new(&test_file_name)).unwrap();
+    }
+
+    #[test]
+    fn test_write_success() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.csv");
+        let mut file = File::create(&test_file_name).unwrap();
+        let transaction = Transaction {
+            tx_id: 10,
+            tx_type: TransactionType::Deposit,
+            from_user_id: 1,
+            to_user_id: 2,
+            amount: 100,
+            timestamp: 500,
+            status: TransactionStatus::Success,
+            description: "description".to_string(),
+        };
+        writeln!(file, "{}", CSV_HEADER).unwrap();
+        writeln!(
+            file,
+            "{},{},{},{},{},{},{},{}",
+            transaction.tx_id,
+            transaction.tx_type,
+            transaction.from_user_id,
+            transaction.to_user_id,
+            transaction.amount,
+            transaction.timestamp,
+            transaction.status,
+            transaction.description,
+        )
+        .unwrap();
+        let input = vec![transaction];
+
+        let result = write(&mut file, &input);
+
+        assert!(result.is_ok());
+        remove_file(Path::new(&test_file_name)).unwrap();
+    }
 }
