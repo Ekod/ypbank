@@ -53,6 +53,10 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
 }
 
 pub fn write<W: Write>(writer: &mut W, transactions: &Vec<Transaction>) -> Result<(), ParserError> {
+    if transactions.is_empty() {
+        return Err(ParserError::EmptyTransactions("транзакций нет".to_string()));
+    }
+
     for transaction in transactions {
         writeln!(writer, "{}", TXT_HEADER_PREFIX)?;
         writeln!(writer, "TX_ID: {}", transaction.tx_id)?;
@@ -72,9 +76,126 @@ pub fn write<W: Write>(writer: &mut W, transactions: &Vec<Transaction>) -> Resul
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test_read_success() {}
+    use crate::errors::ParserError;
+    use crate::formats::csv::write;
+    use crate::formats::txt::read;
+    use crate::types::{Transaction, TransactionStatus, TransactionType};
+    use rand::RngExt;
+    use std::fs::{File, remove_file};
+    use std::io::Write;
+    use std::path::Path;
 
     #[test]
-    fn test_write_success() {}
+    fn test_read_success() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.txt");
+        let mut file = File::create(&test_file_name).unwrap();
+        let transaction = Transaction {
+            tx_id: 10,
+            tx_type: TransactionType::Deposit,
+            from_user_id: 1,
+            to_user_id: 2,
+            amount: 100,
+            timestamp: 500,
+            status: TransactionStatus::Success,
+            description: "description".to_string(),
+        };
+
+        writeln!(file, "TX_ID: {}", transaction.tx_id).unwrap();
+        writeln!(file, "TX_TYPE: {}", transaction.tx_type).unwrap();
+        writeln!(file, "FROM_USER_ID: {}", transaction.from_user_id).unwrap();
+        writeln!(file, "TO_USER_ID: {}", transaction.to_user_id).unwrap();
+        writeln!(file, "AMOUNT: {}", transaction.amount).unwrap();
+        writeln!(file, "TIMESTAMP: {}", transaction.timestamp).unwrap();
+        writeln!(file, "STATUS: {}", transaction.status).unwrap();
+        writeln!(file, "DESCRIPTION: {}", transaction.description).unwrap();
+        writeln!(file, "").unwrap();
+        file.flush().unwrap();
+
+        let mut reader = File::open(Path::new(&test_file_name)).unwrap();
+
+        let result = match read(&mut reader) {
+            Ok(result) => result,
+            Err(error) => panic!("возникла проблема при чтении файла {:?}", error),
+        };
+
+        remove_file(Path::new(&test_file_name)).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0], transaction);
+    }
+
+    #[test]
+    fn test_write_success() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.txt");
+        let mut file = File::create(&test_file_name).unwrap();
+        let transaction = Transaction {
+            tx_id: 10,
+            tx_type: TransactionType::Deposit,
+            from_user_id: 1,
+            to_user_id: 2,
+            amount: 100,
+            timestamp: 500,
+            status: TransactionStatus::Success,
+            description: "description".to_string(),
+        };
+        writeln!(file, "TX_ID: {}", transaction.tx_id).unwrap();
+        writeln!(file, "TX_TYPE: {}", transaction.tx_type).unwrap();
+        writeln!(file, "FROM_USER_ID: {}", transaction.from_user_id).unwrap();
+        writeln!(file, "TO_USER_ID: {}", transaction.to_user_id).unwrap();
+        writeln!(file, "AMOUNT: {}", transaction.amount).unwrap();
+        writeln!(file, "TIMESTAMP: {}", transaction.timestamp).unwrap();
+        writeln!(file, "STATUS: {}", transaction.status).unwrap();
+        writeln!(file, "DESCRIPTION: {}", transaction.description).unwrap();
+        writeln!(file, "").unwrap();
+        file.flush().unwrap();
+        let input = vec![transaction];
+
+        let result = write(&mut file, &input);
+
+        remove_file(Path::new(&test_file_name)).unwrap();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_write_failure() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.txt");
+        let mut file = File::create(&test_file_name).unwrap();
+
+        match write(&mut file, &vec![]) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::EmptyTransactions("транзакций нет".to_string()),
+                )
+            }
+        }
+    }
+
+    #[test]
+    fn test_read_failure_wrong_transaction_length() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.txt");
+        let mut file = File::create(&test_file_name).unwrap();
+
+        writeln!(file, "transaction").unwrap();
+        file.flush().unwrap();
+
+        let mut reader = File::open(Path::new(&test_file_name)).unwrap();
+
+        if let Err(err) = read(&mut reader) {
+            assert_eq!(
+                err,
+                ParserError::InvalidRecord("неверная длина транзакции".to_string(),)
+            );
+        };
+
+        remove_file(Path::new(&test_file_name)).unwrap();
+    }
 }

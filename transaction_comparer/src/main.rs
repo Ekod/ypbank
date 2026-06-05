@@ -172,6 +172,9 @@ fn are_transactions_equal(
 
     let mut idx: usize = 0;
 
+    // В данной версии сравнение идёт не только по данным в самих записях,
+    // но и то, что транзакции в обоих векторах идут в одиннаковом порядке.
+    // Если при проверке на идентичность не нужно проверять порядок, а только данные, то переделаю
     while idx < transactions_1.len() {
         let transaction1 = &transactions_1[idx];
         let transaction2 = &transactions_2[idx];

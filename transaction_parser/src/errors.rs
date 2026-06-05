@@ -10,6 +10,7 @@ pub enum ParserError {
     InvalidRecord(String),
     InvalidValue(String),
     InvalidRange(String),
+    EmptyTransactions(String),
 }
 
 impl Display for ParserError {
@@ -29,6 +30,7 @@ impl Display for ParserError {
             Self::InvalidRange(err) => {
                 write!(f, "некорректный диапазон {err}")
             }
+            Self::EmptyTransactions(err) => write!(f, "отсутствуют транзакции {err}"),
         }
     }
 }

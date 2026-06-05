@@ -58,6 +58,10 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
 }
 
 pub fn write<W: Write>(writer: &mut W, transactions: &Vec<Transaction>) -> Result<(), ParserError> {
+    if transactions.is_empty() {
+        return Err(ParserError::EmptyTransactions("транзакций нет".to_string()));
+    }
+
     for transaction in transactions {
         writer.write_all(&BIN_HEADER_ID)?;
         writer.write_all(&calculate_body_size(transaction).to_be_bytes())?;
@@ -215,9 +219,9 @@ mod tests {
             Err(error) => panic!("возникла проблема при чтении файла {:?}", error),
         };
 
+        remove_file(Path::new(&test_file_name)).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], transaction);
-        remove_file(Path::new(&test_file_name)).unwrap();
     }
 
     #[test]
@@ -232,8 +236,8 @@ mod tests {
             Err(error) => panic!("возникла проблема при чтении файла {:?}", error),
         };
 
-        assert_eq!(result.len(), 0);
         remove_file(Path::new(&test_file_name)).unwrap();
+        assert_eq!(result.len(), 0);
     }
 
     #[test]
@@ -286,8 +290,8 @@ mod tests {
             Err(error) => panic!("возникла проблема при чтении файла {:?}", error),
         };
 
-        assert_eq!(result.len(), 0);
         remove_file(Path::new(&test_file_name)).unwrap();
+        assert_eq!(result.len(), 0);
     }
 
     #[test]
@@ -299,14 +303,19 @@ mod tests {
 
         let mut reader = File::open(Path::new(&test_file_name)).unwrap();
 
-        if let Err(err) = read(&mut reader) {
-            assert_eq!(
-                err,
-                ParserError::InvalidRange("курсор выходит за пределы буффера".to_string(),)
-            );
-        };
-
-        remove_file(Path::new(&test_file_name)).unwrap();
+        match read(&mut reader) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::InvalidRange("курсор выходит за пределы буффера".to_string(),)
+                );
+            }
+        }
     }
 
     #[test]
@@ -329,8 +338,8 @@ mod tests {
 
         let result = write(&mut file, &input);
 
-        assert!(result.is_ok());
         remove_file(Path::new(&test_file_name)).unwrap();
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -362,47 +371,80 @@ mod tests {
     }
 
     #[test]
+    fn test_write_failure() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.bin");
+        let mut file = File::create(&test_file_name).unwrap();
+
+        match write(&mut file, &Vec::new()) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::EmptyTransactions("транзакций нет".to_string()),
+                )
+            }
+        };
+    }
+
+    #[test]
     fn test_parse_raw_bytes_to_u64_be_success() {
         let test_value = 100u64;
         let test_buffer = test_value.to_be_bytes();
         let mut cursor = 0usize;
-        if let Ok(result) = parse_raw_bytes_to_u64_be(&test_buffer, &mut cursor) {
-            assert_eq!(result, test_value);
-            return;
+        match parse_raw_bytes_to_u64_be(&test_buffer, &mut cursor) {
+            Ok(result) => {
+                assert_eq!(result, test_value);
+            }
+            Err(err) => {
+                panic!("test has failed with message {}", err);
+            }
         };
-        panic!("test has failed");
     }
     #[test]
     fn test_parse_raw_bytes_to_u8_be_success() {
         let test_value = 100u8;
         let test_buffer = test_value.to_be_bytes();
         let mut cursor = 0usize;
-        if let Ok(result) = parse_raw_bytes_to_u8_be(&test_buffer, &mut cursor) {
-            assert_eq!(result, test_value);
-            return;
+        match parse_raw_bytes_to_u8_be(&test_buffer, &mut cursor) {
+            Ok(result) => {
+                assert_eq!(result, test_value);
+            }
+            Err(err) => {
+                panic!("test has failed with message {}", err);
+            }
         };
-        panic!("test has failed");
     }
     #[test]
     fn test_parse_raw_bytes_to_i64_be_success() {
         let test_value = 100i64;
         let test_buffer = test_value.to_be_bytes();
         let mut cursor = 0usize;
-        if let Ok(result) = parse_raw_bytes_to_i64_be(&test_buffer, &mut cursor) {
-            assert_eq!(result, test_value);
-            return;
+        match parse_raw_bytes_to_i64_be(&test_buffer, &mut cursor) {
+            Ok(result) => {
+                assert_eq!(result, test_value);
+            }
+            Err(err) => {
+                panic!("test has failed with message {}", err);
+            }
         };
-        panic!("test has failed");
     }
     #[test]
     fn test_parse_raw_bytes_to_u32_be_success() {
         let test_value = 100u32;
         let test_buffer = test_value.to_be_bytes();
         let mut cursor = 0usize;
-        if let Ok(result) = parse_raw_bytes_to_u32_be(&test_buffer, &mut cursor) {
-            assert_eq!(result, test_value);
-            return;
+        match parse_raw_bytes_to_u32_be(&test_buffer, &mut cursor) {
+            Ok(result) => {
+                assert_eq!(result, test_value);
+            }
+            Err(err) => {
+                panic!("test has failed with message {}", err);
+            }
         };
-        panic!("test has failed");
     }
 }

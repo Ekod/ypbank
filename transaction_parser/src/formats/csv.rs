@@ -77,6 +77,10 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
 }
 
 pub fn write<W: Write>(writer: &mut W, transactions: &Vec<Transaction>) -> Result<(), ParserError> {
+    if transactions.is_empty() {
+        return Err(ParserError::EmptyTransactions("транзакций нет".to_string()));
+    }
+
     writeln!(writer, "{CSV_HEADER}")?;
 
     for transaction in transactions {
@@ -143,9 +147,9 @@ mod tests {
             Err(error) => panic!("возникла проблема при чтении файла {:?}", error),
         };
 
+        remove_file(Path::new(&test_file_name)).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], transaction);
-        remove_file(Path::new(&test_file_name)).unwrap();
     }
 
     #[test]
@@ -155,14 +159,19 @@ mod tests {
         let _ = File::create(&test_file_name).unwrap();
 
         let mut reader = File::open(Path::new(&test_file_name)).unwrap();
-        if let Err(err) = read(&mut reader) {
-            assert_eq!(
-                err,
-                ParserError::InvalidHeader("заголовок не найден".to_string())
-            );
-        };
-
-        remove_file(Path::new(&test_file_name)).unwrap();
+        match read(&mut reader) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::InvalidHeader("заголовок не найден".to_string())
+                );
+            }
+        }
     }
 
     #[test]
@@ -174,37 +183,46 @@ mod tests {
         writeln!(file, "Some header").unwrap();
 
         let mut reader = File::open(Path::new(&test_file_name)).unwrap();
-        if let Err(err) = read(&mut reader) {
-            assert_eq!(
-                err,
-                ParserError::InvalidHeader("csv заголовок не валидный".to_string(),)
-            );
-        };
-
-        remove_file(Path::new(&test_file_name)).unwrap();
+        match read(&mut reader) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::InvalidHeader("csv заголовок не валидный".to_string(),)
+                );
+            }
+        }
     }
 
     #[test]
-    fn test_read_failure_wrong_transaction_length(){
+    fn test_read_failure_wrong_transaction_length() {
         let r = rand::rng().random::<u64>();
         let test_file_name = String::from(r.to_string() + "test.csv");
         let mut file = File::create(&test_file_name).unwrap();
 
         writeln!(file, "{}", CSV_HEADER).unwrap();
+        writeln!(file, "transaction").unwrap();
         file.flush().unwrap();
 
         let mut reader = File::open(Path::new(&test_file_name)).unwrap();
 
-        if let Err(err) = read(&mut reader) {
-            assert_eq!(
-                err,
-                ParserError::InvalidRecord(
-                    "неверная длина транзакции".to_string(),
+        match read(&mut reader) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::InvalidRecord("неверная длина транзакции".to_string(),)
                 )
-            );
-        };
-
-        remove_file(Path::new(&test_file_name)).unwrap();
+            }
+        }
     }
 
     #[test]
@@ -240,7 +258,28 @@ mod tests {
 
         let result = write(&mut file, &input);
 
-        assert!(result.is_ok());
         remove_file(Path::new(&test_file_name)).unwrap();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_write_failure() {
+        let r = rand::rng().random::<u64>();
+        let test_file_name = String::from(r.to_string() + "test.csv");
+        let mut file = File::create(&test_file_name).unwrap();
+
+        match write(&mut file, &vec![]) {
+            Ok(_) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                panic!("test has failed");
+            }
+            Err(err) => {
+                remove_file(Path::new(&test_file_name)).unwrap();
+                assert_eq!(
+                    err,
+                    ParserError::EmptyTransactions("транзакций нет".to_string()),
+                )
+            }
+        }
     }
 }
