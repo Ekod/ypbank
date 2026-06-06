@@ -13,10 +13,11 @@ csv? Легко! Главное соблюдайте правила состав
 
 ### Как запустить
 
-В корне проекта, в папке .cargo в файле config.toml есть команды, под общим названием alias, например
+С полным списком команд по запуску, а также дополнительной информацией можно ознакомиться в README файлах
+соответствующих частях проекта
 
-```rust
-convert_txt_to_csv = "run --bin transaction_converter -- --input records_example.txt --input-format txt --output-format csv"
-```
+[YPComparer](./transaction_comparer/README.md)
 
-ими можно запустить примеры работы библиотеки
+[YPConverter](./transaction_converter/README.md)
+
+[YPParser](./transaction_parser/README.md)
