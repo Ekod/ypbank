@@ -38,7 +38,11 @@ pub fn read<R: Read>(reader: &mut R) -> Result<Vec<Transaction>, ParserError> {
     let _ = lines.remove(0);
 
     for line in lines {
-        let line = line.expect("не удалось прочитать строку");
+        let line = match line {
+            Ok(line) => line,
+            Err(err) => Err(ParserError::InvalidRecord(err.to_string()))?,
+        };
+
         if line.is_empty() {
             continue;
         }
